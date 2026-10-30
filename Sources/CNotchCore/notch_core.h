@@ -18,6 +18,10 @@ bool nd_shelf_add(const char *path);
 void nd_shelf_remove(const char *path);
 char *nd_shelf_list(void);
 
+bool nd_media_update(const char *json);
+void nd_media_set_playing(bool playing);
+char *nd_media_state(void);
+
 void nd_timer_start(uint32_t seconds);
 void nd_timer_toggle_pause(void);
 void nd_timer_stop(void);

@@ -83,7 +83,7 @@ final class NotchController {
     }
 
     private func layout() {
-        let size = NotchModel.expandedSize
+        let size = model.expandedSize
         let width = size.width + 40, height = size.height + 30 // room for the shadow
         panel.setFrame(
             NSRect(x: screen.frame.midX - width / 2, y: screen.frame.maxY - height, width: width, height: height),
@@ -100,7 +100,7 @@ final class NotchController {
     private func trackCursor() {
         let mouse = NSEvent.mouseLocation
         if model.isExpanded {
-            if rect(for: NotchModel.expandedSize).insetBy(dx: -12, dy: -12).contains(mouse) {
+            if rect(for: model.expandedSize).insetBy(dx: -12, dy: -12).contains(mouse) {
                 leftAt = nil
             } else if let leftAt {
                 if Date().timeIntervalSince(leftAt) > 0.25 { collapse() }

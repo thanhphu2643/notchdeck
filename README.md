@@ -3,7 +3,10 @@
 Turn the MacBook notch into something useful. Hover the notch and it expands
 into a small dashboard; move away and it tucks back into the camera housing.
 
-- **Home** – clock and date, CPU / RAM / network throughput, battery.
+- **Now Playing** – whatever is playing system-wide (Spotify, Music, YouTube in
+  any browser, VLC, …): artwork or app icon, progress, play/pause, next,
+  previous. The collapsed notch shows the artwork and a live equalizer.
+- **System** – CPU / RAM / network throughput; clock and battery in the header.
 - **Focus timer** – 5 / 25 / 50 minute timers. While running, the collapsed
   notch widens into a live countdown; a sound plays when it ends.
 - **Clipboard history** – the last 30 text copies, click to copy again.
@@ -27,6 +30,15 @@ The Rust crate builds as a static library exposing a small C ABI
 (`nd_*` functions in `core/src/lib.rs`). Data crosses the boundary as JSON
 strings, which Swift decodes with `Codable`. State is persisted to
 `~/Library/Application Support/NotchDeck/state.json`.
+
+### Now Playing on macOS 15.4+
+
+Apple only hands now-playing info to Apple-signed processes. NotchDeck runs a
+small JavaScript-for-Automation loop inside `/usr/bin/osascript` (see
+`NowPlaying.swift`) that reads `MRNowPlayingRequest` once a second and prints
+a JSON line on change. The Rust core parses it and interpolates the playback
+position between reports. Media commands are still allowed from regular apps,
+so play/pause/next go through MediaRemote in-process.
 
 ## Build
 
@@ -53,7 +65,7 @@ Quit and "Launch at Login" live in the menu bar icon.
 
 ## Roadmap ideas
 
-- Now Playing controls
+- Seek by clicking the progress bar
 - Calendar: next event
 - Configurable tabs and timer presets
 - Keyboard shortcut to toggle the panel

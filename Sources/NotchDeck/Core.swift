@@ -19,6 +19,17 @@ struct TimerState: Decodable, Equatable {
     static let idle = TimerState(active: false, paused: false, totalSecs: 0, remainingSecs: 0, finished: false)
 }
 
+struct MediaState: Decodable, Equatable {
+    var title: String
+    var artist: String
+    var album: String
+    var appName: String
+    var bundleId: String
+    var duration: Double
+    var position: Double
+    var playing: Bool
+}
+
 /// Thin Swift facade over the Rust core's C ABI.
 enum Core {
     private static let decoder: JSONDecoder = {
@@ -53,6 +64,11 @@ enum Core {
         let paths: [String] = decode(nd_shelf_list) ?? []
         return paths.map { URL(fileURLWithPath: $0) }
     }
+
+    /// Returns true when the playing item changed.
+    static func updateMedia(_ json: String) -> Bool { nd_media_update(json) }
+    static func setMediaPlaying(_ playing: Bool) { nd_media_set_playing(playing) }
+    static func mediaState() -> MediaState? { decode(nd_media_state) }
 
     static func startTimer(minutes: Int) { nd_timer_start(UInt32(minutes * 60)) }
     static func toggleTimerPause() { nd_timer_toggle_pause() }

@@ -2,6 +2,7 @@
 //! an owned, NUL-terminated JSON string that must be released with
 //! `nd_string_free`.
 
+mod media;
 mod stats;
 mod store;
 mod timer;
@@ -12,6 +13,7 @@ use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use serde::Serialize;
 
+use media::Media;
 use stats::Stats;
 use store::Store;
 use timer::FocusTimer;
@@ -20,6 +22,7 @@ struct Core {
     stats: Option<Stats>,
     store: Store,
     timer: FocusTimer,
+    media: Media,
 }
 
 static CORE: OnceLock<Mutex<Core>> = OnceLock::new();
@@ -30,6 +33,7 @@ fn core() -> MutexGuard<'static, Core> {
             stats: Stats::new(),
             store: Store::in_memory(),
             timer: FocusTimer::default(),
+            media: Media::default(),
         })
     })
     .lock()
@@ -110,6 +114,24 @@ pub extern "C" fn nd_shelf_remove(path: *const c_char) {
 #[unsafe(no_mangle)]
 pub extern "C" fn nd_shelf_list() -> *mut c_char {
     json_out(&core().store.shelf())
+}
+
+/// Feeds one JSON line from the now-playing watcher. Returns true when the
+/// playing item changed.
+#[unsafe(no_mangle)]
+pub extern "C" fn nd_media_update(json: *const c_char) -> bool {
+    str_arg(json).is_some_and(|j| core().media.update(j, media::now_epoch()))
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn nd_media_set_playing(playing: bool) {
+    core().media.set_playing(playing, media::now_epoch());
+}
+
+/// JSON `MediaState`, or `null` when nothing is playing.
+#[unsafe(no_mangle)]
+pub extern "C" fn nd_media_state() -> *mut c_char {
+    json_out(&core().media.state(media::now_epoch()))
 }
 
 #[unsafe(no_mangle)]

@@ -22,31 +22,33 @@ struct Battery: Equatable {
 @MainActor
 final class NotchModel: ObservableObject {
     enum Tab: String, CaseIterable {
-        case home, clipboard, shelf
+        case media, system, clipboard, shelf
 
         var icon: String {
             switch self {
-            case .home: "square.grid.2x2"
+            case .media: "play.circle"
+            case .system: "gauge.with.dots.needle.33percent"
             case .clipboard: "doc.on.clipboard"
             case .shelf: "tray.full"
             }
         }
     }
 
-    static let expandedSize = CGSize(width: 640, height: 220)
-
     @Published var isExpanded = false
-    @Published var tab: Tab = .home
+    @Published var tab: Tab = .media
     @Published var now = Date()
     @Published var stats: SystemStats?
     @Published var battery: Battery?
     @Published var clips: [String] = []
     @Published var shelf: [URL] = []
     @Published var timer: TimerState = .idle
+    @Published var media: MediaState?
+    @Published var artwork: NSImage?
     @Published var notchSize: CGSize
 
     private var pasteboardChangeCount = NSPasteboard.general.changeCount
     private var timers: [Timer] = []
+    private var watcher: NowPlayingWatcher?
 
     init(notchSize: CGSize) {
         self.notchSize = notchSize
@@ -57,14 +59,22 @@ final class NotchModel: ObservableObject {
             repeating(1) { $0.tick() },
             repeating(0.5) { $0.pollPasteboard() },
         ]
+        watcher = NowPlayingWatcher { [weak self] line in
+            Task { @MainActor in self?.ingestMedia(line) }
+        }
+        watcher?.start()
     }
 
-    /// Collapsed size grows sideways while a timer runs, like a live activity.
+    /// Kept small: just a band of content under the notch.
+    var expandedSize: CGSize { CGSize(width: 440, height: notchSize.height + 112) }
+
+    /// While a timer runs or media plays, the collapsed notch grows sideways like a live activity.
     var collapsedSize: CGSize {
-        timer.active ? CGSize(width: notchSize.width + 2 * 64, height: notchSize.height) : notchSize
+        let side: CGFloat = timer.active ? 64 : (media?.playing == true ? notchSize.height + 8 : 0)
+        return CGSize(width: notchSize.width + 2 * side, height: notchSize.height)
     }
 
-    var size: CGSize { isExpanded ? Self.expandedSize : collapsedSize }
+    var size: CGSize { isExpanded ? expandedSize : collapsedSize }
 
     private func repeating(_ interval: TimeInterval, _ body: @escaping @MainActor (NotchModel) -> Void) -> Timer {
         Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
@@ -81,6 +91,7 @@ final class NotchModel: ObservableObject {
             NSSound(named: "Glass")?.play()
         }
         timer = next
+        media = Core.mediaState()
         if isExpanded {
             stats = Core.stats()
             battery = Battery.read()
@@ -107,6 +118,41 @@ final class NotchModel: ObservableObject {
             battery = Battery.read()
         }
         isExpanded = expanded
+    }
+
+    // MARK: Media
+
+    private func ingestMedia(_ line: String) {
+        if Core.updateMedia(line) {
+            artwork = Self.artwork(in: line)
+        } else if artwork == nil, let image = Self.artwork(in: line) {
+            artwork = image
+        }
+        media = Core.mediaState()
+    }
+
+    private static func artwork(in line: String) -> NSImage? {
+        guard line.contains("\"artwork\""),
+              let object = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any],
+              let base64 = object["artwork"] as? String,
+              let data = Data(base64Encoded: base64)
+        else { return nil }
+        return NSImage(data: data)
+    }
+
+    func mediaCommand(_ command: MediaCommand) {
+        command.send()
+        if command == .togglePlayPause, let media {
+            Core.setMediaPlaying(!media.playing)
+            self.media = Core.mediaState()
+        }
+    }
+
+    func openMediaApp() {
+        guard let id = media?.bundleId,
+              let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id)
+        else { return }
+        NSWorkspace.shared.openApplication(at: url, configuration: .init())
     }
 
     // MARK: Clipboard
