@@ -35,7 +35,10 @@ final class NotchModel: ObservableObject {
     }
 
     @Published var isExpanded = false
-    @Published var tab: Tab = .media
+    /// Remembered across launches.
+    @Published var tab = Tab(rawValue: UserDefaults.standard.string(forKey: "tab") ?? "") ?? .media {
+        didSet { UserDefaults.standard.set(tab.rawValue, forKey: "tab") }
+    }
     @Published var now = Date()
     @Published var stats: SystemStats?
     @Published var battery: Battery?

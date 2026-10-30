@@ -37,6 +37,10 @@ and a live equalizer, so you can see what is on without opening anything:
 
 CPU and memory usage, network down/up speed, battery and the clock.
 
+<p align="center">
+  <img src="docs/screenshots/system.png" width="480" alt="System tab with CPU, RAM and network speed next to the focus timer">
+</p>
+
 ### Focus timer
 
 Start a 5, 25 or 50 minute timer. While it runs, the collapsed notch turns into
