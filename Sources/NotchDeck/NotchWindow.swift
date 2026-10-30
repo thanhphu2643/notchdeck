@@ -47,6 +47,7 @@ final class NotchController {
     let model: NotchModel
     private var screen: NSScreen
     private var leftAt: Date?
+    private var menuOpen = false
     private var cancellables: Set<AnyCancellable> = []
 
     init() {
@@ -69,6 +70,13 @@ final class NotchController {
             .store(in: &cancellables)
         model.$isExpanded
             .sink { [weak self] expanded in self?.panel.ignoresMouseEvents = !expanded }
+            .store(in: &cancellables)
+        // Menus (e.g. settings) open outside the island; stay expanded while one is up.
+        NotificationCenter.default.publisher(for: NSMenu.didBeginTrackingNotification)
+            .sink { [weak self] _ in MainActor.assumeIsolated { self?.menuOpen = true } }
+            .store(in: &cancellables)
+        NotificationCenter.default.publisher(for: NSMenu.didEndTrackingNotification)
+            .sink { [weak self] _ in MainActor.assumeIsolated { self?.menuOpen = false } }
             .store(in: &cancellables)
     }
 
@@ -100,7 +108,7 @@ final class NotchController {
     private func trackCursor() {
         let mouse = NSEvent.mouseLocation
         if model.isExpanded {
-            if rect(for: model.expandedSize).insetBy(dx: -12, dy: -12).contains(mouse) {
+            if menuOpen || rect(for: model.expandedSize).insetBy(dx: -12, dy: -12).contains(mouse) {
                 leftAt = nil
             } else if let leftAt {
                 if Date().timeIntervalSince(leftAt) > 0.25 { collapse() }

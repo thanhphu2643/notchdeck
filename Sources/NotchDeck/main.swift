@@ -1,10 +1,10 @@
 import AppKit
-import ServiceManagement
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var controller: NotchController?
     private var statusItem: NSStatusItem?
+    private let loginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Core.initialize()
@@ -13,24 +13,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = NSImage(systemSymbolName: "rectangle.topthird.inset.filled", accessibilityDescription: "NotchDeck")
         let menu = NSMenu()
-        let login = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
-        login.target = self
-        login.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        menu.addItem(login)
+        menu.delegate = self
+        loginItem.target = self
+        menu.addItem(loginItem)
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit NotchDeck", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         item.menu = menu
         statusItem = item
     }
 
-    @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
-        let service = SMAppService.mainApp
-        do {
-            if service.status == .enabled { try service.unregister() } else { try service.register() }
-        } catch {
-            NSLog("NotchDeck: launch at login failed: \(error)")
-        }
-        sender.state = service.status == .enabled ? .on : .off
+    // The toggle also lives in the notch, so refresh whenever the menu opens.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        loginItem.state = LaunchAtLogin.shared.isEnabled ? .on : .off
+    }
+
+    @objc private func toggleLaunchAtLogin() {
+        LaunchAtLogin.shared.set(!LaunchAtLogin.shared.isEnabled)
     }
 }
 

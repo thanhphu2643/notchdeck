@@ -11,7 +11,7 @@ export MACOSX_DEPLOYMENT_TARGET=14.0
 if [[ "${1:-}" == "--universal" ]]; then
   rustup target add aarch64-apple-darwin x86_64-apple-darwin >/dev/null
   for t in aarch64-apple-darwin x86_64-apple-darwin; do
-    cargo build --release --manifest-path core/Cargo.toml --target "$t"
+    ${CARGO:-cargo} build --release --manifest-path core/Cargo.toml --target "$t"
   done
   mkdir -p core/target/release
   lipo -create -output core/target/release/libnotchdeck_core.a \
@@ -19,7 +19,7 @@ if [[ "${1:-}" == "--universal" ]]; then
   swift build -c release --arch arm64 --arch x86_64
   BIN=.build/apple/Products/Release/NotchDeck
 else
-  cargo build --release --manifest-path core/Cargo.toml
+  ${CARGO:-cargo} build --release --manifest-path core/Cargo.toml
   swift build -c release
   BIN=.build/release/NotchDeck
 fi
@@ -33,7 +33,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <plist version="1.0">
 <dict>
   <key>CFBundleName</key><string>NotchDeck</string>
-  <key>CFBundleIdentifier</key><string>io.github.notchdeck</string>
+  <key>CFBundleIdentifier</key><string>io.github.thanhphu2643.notchdeck</string>
+  <key>NSHumanReadableCopyright</key><string>© 2026 Nguyễn Thanh Phú. MIT License.</string>
   <key>CFBundleExecutable</key><string>NotchDeck</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>${VERSION}</string>

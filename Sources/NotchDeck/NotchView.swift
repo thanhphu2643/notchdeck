@@ -144,10 +144,28 @@ private struct ExpandedView: View {
                 Image(systemName: battery.charging ? "battery.100.bolt" : batteryIcon(battery.percent))
                 Text("\(battery.percent)%").monospacedDigit()
             }
+            SettingsMenu()
         }
         .font(.system(size: 11, weight: .medium))
         .foregroundStyle(.secondary)
         .frame(height: max(model.notchSize.height, 24))
+    }
+}
+
+private struct SettingsMenu: View {
+    @ObservedObject private var launchAtLogin = LaunchAtLogin.shared
+
+    var body: some View {
+        Menu {
+            Toggle("Launch at Login", isOn: Binding(get: { launchAtLogin.isEnabled }, set: launchAtLogin.set))
+            Divider()
+            Button("Quit NotchDeck") { NSApp.terminate(nil) }
+        } label: {
+            Image(systemName: "gearshape")
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
     }
 }
 
