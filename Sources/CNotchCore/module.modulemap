@@ -1,0 +1,5 @@
+module CNotchCore {
+    header "notch_core.h"
+    link "notchdeck_core"
+    export *
+}

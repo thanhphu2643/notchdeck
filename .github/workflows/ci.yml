@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - name: Rust tests
+        run: |
+          cargo clippy --manifest-path core/Cargo.toml --all-targets -- -D warnings
+          cargo test --manifest-path core/Cargo.toml
+      - name: Build app
+        run: scripts/bundle.sh --universal
+      - name: Package
+        run: cd dist && ditto -c -k --keepParent NotchDeck.app NotchDeck.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NotchDeck
+          path: dist/NotchDeck.zip
